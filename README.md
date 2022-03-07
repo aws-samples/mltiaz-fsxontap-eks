@@ -64,7 +64,7 @@ Change to the directory where cluster.yaml file exists:
 eksctl create cluster -f ./cluster.yaml
 ```
 
-# Clean up
+## Clean up
 ```
 eksctl delete cluster --name=FSxONTAP-eks --region <region-name>
 ```
@@ -76,3 +76,9 @@ aws cloudformation delete-stack --stack-name EKS-FSxONTAP --region <region-name>
 ```
 aws cloudformation delete-stack --stack-name EKS-MyFSxONTAP --region <region-name>
 ```
+
+# Security 
+See CONTRIBUTING for more information.
+
+# License
+This library is licensed under the MIT-0 License. See the LICENSE file.
