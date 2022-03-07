@@ -3,6 +3,10 @@
 ## About the Setup
 The infrastructure comprises of an Amazon EKS cluster with three EC2 worker nodes and a FSxONTAP file system that spans across multiple availability zones. After infrastructure deployment, we will walk through how to leverage NetApp’s Trident Container Storage Interface (CSI) (https://netapp-trident.readthedocs.io/en/stable-v19.01/kubernetes/trident-csi.html)to create storage volume powered by FSxONTAP for a MySql database that runs on Amazon EKS cluster. NetApp's Trident Container Storage Interface (CSI) driver provides a CSI interface that allows Amazon EKS clusters to manage the lifecycle of Amazon FSx for NetApp ONTAP file systems.The test environment could be created quite easily with a Infrastructure of Code (IaC) approach thanks to AWS CloudFormation’s capability and we will dive deep into how to deploy Trident CSI Operator into the Amazon EKS cluster via Helm (https://helm.sh/), and creating the storage class, persistent volume claims so as to let the application pod mount on the volume provided by FSxONTAP.
 
+## Architecture Diagram
+
+![Diagram](/Architecture.png)
+
 ## Project Structure
 ├── FSxONTAP                                # Holds CloudFormation templates for creating the network environment and FSxONTAP file system
 │   ├── FSxONTAP.yaml                       # CloudFormation template for creating FSxONTAP File System
@@ -23,7 +27,7 @@ The infrastructure comprises of an Amazon EKS cluster with three EC2 worker node
 
 ## Prerequisites
 
-* An AWS account (https://signin.aws.amazon.com/signin?redirect_uri=https%3A%2F%2Fportal.aws.amazon.com%2Fbilling%2Fsignup%2Fresume&client_id=signup) with necessary permissions to create and manage Amazon VPC, Amazon EKS Cluster, Amazon FSx for NetApp ONTAP file system and Cloudformation stack. 
+* An AWS account with necessary permissions to create and manage Amazon VPC, Amazon EKS Cluster, Amazon FSx for NetApp ONTAP file system and Cloudformation stack. 
 * eksctl, kubectl and Helm3 have been installed in your laptop. 
     * eksctl: https://docs.aws.amazon.com/eks/latest/userguide/eksctl.html 
     * kubectl: https://docs.aws.amazon.com/eks/latest/userguide/install-kubectl.html
@@ -31,10 +35,6 @@ The infrastructure comprises of an Amazon EKS cluster with three EC2 worker node
 * The AWS Command Line Interface (AWS CLI) should have been configured in your working environment. For information about installing and configuring the AWS CLI, see Installing, updating, and uninstalling the AWS CLI version 2 (https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html).
 * A good understanding of Amazon EKS, Kubernetes CSI, and Amazon FSx for NetApp ONTAP
 * The Trident Operator is supported with Kubernetes 1.17 or later . We will provide instructions on installing Trident using Helm in the following steps. 
-
-## Architecture Diagram
-
-![Diagram](/Architecture.png)
 
 # Getting started
 
