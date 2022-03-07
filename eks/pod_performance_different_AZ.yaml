@@ -1,0 +1,33 @@
+# pod_performance_different_AZ.yaml
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: task-trident-nas-pv-claim
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: trident-csi
+---
+kind: Pod
+apiVersion: v1
+metadata:
+  name: task-pv-pod
+spec:
+  volumes:
+    - name: task-trident-nas-pv-storage
+      persistentVolumeClaim:
+        claimName: task-trident-nas-pv-claim  
+  containers:
+    - name: task-pv-container
+      image: nginx
+      ports:
+        - containerPort: 80
+          name: "http-server"
+      volumeMounts:
+        - mountPath: "/usr/share/trident-nas/"
+          name: task-trident-nas-pv-storage
+  nodeSelector: # to make sure the pod stays in the different region
+    topology.ebs.csi.aws.com/zone: ap-east-1b

@@ -1,17 +1,15 @@
-## My Project
+# Quickly create an FSx for NetApp ONTAP file system
 
-TODO: Fill this README out!
+## What is FSx for NetApp ONTAP (FSxO)
+Amazon FSx for NetApp ONTAP is a fully managed service that provides highly reliable, scalable, performant, and feature-rich file storage built on NetApp's popular ONTAP file system. It provides the familiar features, performance, capabilities, and APIs of NetApp file systems with the agility, scalability, and simplicity of a fully managed AWS service.
 
-Be sure to:
+## About the Cloudformation templates
+There are two cloudformation templates provided in this repo:
 
-* Change the title in this README
-* Edit your repository description on GitHub
+**vpc-subnets.yaml**<br/>This creates a VPC with two public subnets and two private subnets, where the FSxONTAP file system will run on.
 
-## Security
+**FSxONTAP.yaml**<br/>This creates a FSxONTAP file system, with HA spanning across two private subnets.It allows you to put parameters such as StorageCapacity, ThroughputCapacity, FsxAdminPassword etc., to customized your file system.
 
-See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
+## Architecture Diagram
 
-## License
-
-This library is licensed under the MIT-0 License. See the LICENSE file.
-
+![Diagram](/Architecture.png)

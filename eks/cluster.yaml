@@ -1,0 +1,39 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+metadata:
+  name: FSxONTAP-eks
+  region: ap-southeast-2
+vpc:
+  id: "vpc-0baa2354be068c467" #replace with your vpcId
+  clusterEndpoints:
+    privateAccess: false
+    publicAccess: true # Create the EKS control planes in the public subnets
+  subnets:
+    public: # Create the EKS control planes in the public subnets
+      ap-southeast-2a: { id: subnet-0301c68ecae276fd2 } #replace with your subnetid
+      ap-southeast-2b: { id: subnet-0c6961e5b82dfd96e }
+iam:
+  withOIDC: true
+addons:
+  - name: vpc-cni # no version is specified so it deploys the default version
+  - name: aws-ebs-csi-driver
+  - name: coredns
+    version: latest # auto discovers the latest available
+  - name: kube-proxy
+    version: latest # auto discovers the latest available
+managedNodeGroups:
+  - name: ng-1-workers
+    # Create the EKS Managed Node Groups in the private subnets
+    subnets: [ 'subnet-0650a950093757795', 'subnet-08fbcee5bcd34169e'] #replace with your subnetId
+    labels: { role: workers }
+    instanceType: t3.large
+    desiredCapacity: 3
+    ssh:
+      enableSsm: true
+    iam:
+      withAddonPolicies:
+        ebs: true
+        efs: true
+cloudWatch:
+  clusterLogging:
+    enableTypes: ["all"]

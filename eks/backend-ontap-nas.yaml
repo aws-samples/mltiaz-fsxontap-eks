@@ -1,0 +1,14 @@
+apiVersion: trident.netapp.io/v1
+kind: TridentBackendConfig
+metadata:
+  name: backend-fsx-ontap-nas
+  namespace: trident
+spec:
+  version: 1
+  backendName: fsx-ontap
+  storageDriverName: ontap-nas
+  managementLIF: [#replace with your svm management endpoint in FSxONTAP console]
+  dataLIF: [#replace with your svm NAS endpoint in FSxONTAP console]
+  svm: SVM1
+  credentials:
+    name: backend-fsx-ontap-nas-secret
