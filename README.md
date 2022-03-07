@@ -16,13 +16,13 @@ The infrastructure comprises of an Amazon EKS cluster with three EC2 worker node
 │   └── vpc-subnets.yaml                    # CloudFormation template for creating a VPC with two public and private subnets
 ├── eks                                     # Holds artifacts for creating EKS Cluster and K8S resources to be deployed
 │   ├── cluster.yaml                        # Config file for creating an EKS cluster with eksctl
-│   └── backend-ontap-nas.yaml              
-│   └── storage-class-csi-nas.yaml
-│   └── svm_secret.yaml
-│   └── pvc-trident.yaml
-│   └── pod_performance_same_AZ.yaml
-│   └── pod_performance_different_AZ.yaml
-│   └── mysql
+│   └── backend-ontap-nas.yaml              # YAML file for configuring backend settings of Trident CSI
+│   └── storage-class-csi-nas.yaml          # YAML file for creating storage class 
+│   └── svm_secret.yaml                     # YAML file for creating a k8s secret that stores credentials of FSxONTAP
+│   └── pvc-trident.yaml                    # A sample YAML file for creating PVC for trident CSI
+│   └── pod_performance_same_AZ.yaml        # A YAML file for running a pod in the same AZ as the FSxONTAP File System for measuring storage performace of FSxONTAP
+│   └── pod_performance_different_AZ.yaml.  # A YAML file for running a pod in a different AZ as the FSxONTAP File System for measuring storage performace of FSxONTAP
+│   └── mysql                               # Holds MySQL artifacts for K8S
 |       ├── mysql-configmap.yaml
 |       └── mysql-service.yaml
 |       └── mysql-statefulset.yaml
