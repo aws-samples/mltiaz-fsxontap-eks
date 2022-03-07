@@ -1,15 +1,74 @@
-# Quickly create an FSx for NetApp ONTAP file system
+# How to run a Multi-AZ Stateful application on EKS with AWS FSx for NetApp ONTAP
 
-## What is FSx for NetApp ONTAP (FSxO)
-Amazon FSx for NetApp ONTAP is a fully managed service that provides highly reliable, scalable, performant, and feature-rich file storage built on NetApp's popular ONTAP file system. It provides the familiar features, performance, capabilities, and APIs of NetApp file systems with the agility, scalability, and simplicity of a fully managed AWS service.
+## About the Setup
+The infrastructure comprises of an Amazon EKS cluster with three EC2 worker nodes and a FSxONTAP file system that spans across multiple availability zones. After infrastructure deployment, we will walk through how to leverage NetApp’s Trident Container Storage Interface (CSI) (https://netapp-trident.readthedocs.io/en/stable-v19.01/kubernetes/trident-csi.html)to create storage volume powered by FSxONTAP for a MySql database that runs on Amazon EKS cluster. NetApp's Trident Container Storage Interface (CSI) driver provides a CSI interface that allows Amazon EKS clusters to manage the lifecycle of Amazon FSx for NetApp ONTAP file systems.The test environment could be created quite easily with a Infrastructure of Code (IaC) approach thanks to AWS CloudFormation’s capability and we will dive deep into how to deploy Trident CSI Operator into the Amazon EKS cluster via Helm (https://helm.sh/), and creating the storage class, persistent volume claims so as to let the application pod mount on the volume provided by FSxONTAP.
 
-## About the Cloudformation templates
-There are two cloudformation templates provided in this repo:
+## Project Structure
+├── FSxONTAP                                # Holds CloudFormation templates for creating the network environment and FSxONTAP file system
+│   ├── FSxONTAP.yaml                       # CloudFormation template for creating FSxONTAP File System
+│   └── vpc-subnets.yaml                    # CloudFormation template for creating a VPC with two public and private subnets
+├── eks                                     # Holds artifacts for creating EKS Cluster and K8S resources to be deployed
+│   ├── cluster.yaml                        # Config file for creating an EKS cluster with eksctl
+│   └── backend-ontap-nas.yaml              
+│   └── storage-class-csi-nas.yaml
+│   └── svm_secret.yaml
+│   └── pvc-trident.yaml
+│   └── pod_performance_same_AZ.yaml
+│   └── pod_performance_different_AZ.yaml
+│   └── mysql
+|       ├── mysql-configmap.yaml
+|       └── mysql-service.yaml
+|       └── mysql-statefulset.yaml
+└── ...
 
-**vpc-subnets.yaml**<br/>This creates a VPC with two public subnets and two private subnets, where the FSxONTAP file system will run on.
+## Prerequisites
 
-**FSxONTAP.yaml**<br/>This creates a FSxONTAP file system, with HA spanning across two private subnets.It allows you to put parameters such as StorageCapacity, ThroughputCapacity, FsxAdminPassword etc., to customized your file system.
+* An AWS account (https://signin.aws.amazon.com/signin?redirect_uri=https%3A%2F%2Fportal.aws.amazon.com%2Fbilling%2Fsignup%2Fresume&client_id=signup) with necessary permissions to create and manage Amazon VPC, Amazon EKS Cluster, Amazon FSx for NetApp ONTAP file system and Cloudformation stack. 
+* eksctl, kubectl and Helm3 have been installed in your laptop. 
+    * eksctl: https://docs.aws.amazon.com/eks/latest/userguide/eksctl.html 
+    * kubectl: https://docs.aws.amazon.com/eks/latest/userguide/install-kubectl.html
+    * Helm 3: https://docs.aws.amazon.com/eks/latest/userguide/helm.html
+* The AWS Command Line Interface (AWS CLI) should have been configured in your working environment. For information about installing and configuring the AWS CLI, see Installing, updating, and uninstalling the AWS CLI version 2 (https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html).
+* A good understanding of Amazon EKS, Kubernetes CSI, and Amazon FSx for NetApp ONTAP
+* The Trident Operator is supported with Kubernetes 1.17 or later . We will provide instructions on installing Trident using Helm in the following steps. 
 
 ## Architecture Diagram
 
 ![Diagram](/Architecture.png)
+
+# Getting started
+
+## Launch VPC Stack
+As you clone the referenced GitHub repo, change directory as below:
+```
+cd mltiaz-fsxontap-eks/FSxONTAP
+```
+
+Launch the CloudFormation stack to set up the network environment for both FSxONTAP and EKS cluster:
+```
+aws cloudformation create-stack --stack-name EKS-FSXONTAP --template-body file://./vpc-subnets.yaml --region <region-name>
+```
+
+## Create an Amazon FSx for NetApp ONTAP file system
+Launch the Cloudformation stack as below to spin up an Amazon FSx for NetApp ONTAP file system. And you need to fill in the parameters and configuration accordingly. Make you choose those two private subnets and VPC as created in the previous step. 
+
+Click the following button to launch the CloudFormation stack that creates an FSxONTAP file system:
+
+## Create an Amazon EKS cluster
+Change to the directory where cluster.yaml file exists:
+```
+eksctl create cluster -f ./cluster.yaml
+```
+
+# Clean up
+```
+eksctl delete cluster --name=FSxONTAP-eks --region ap-southeast-2
+```
+
+```
+aws cloudformation delete-stack --stack-name EKS-FSxONTAP --region ap-southeast-2
+```
+
+```
+aws cloudformation delete-stack --stack-name EKS-MyFSxONTAP --region ap-southeast-2
+```
