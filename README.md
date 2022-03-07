@@ -66,13 +66,13 @@ eksctl create cluster -f ./cluster.yaml
 
 # Clean up
 ```
-eksctl delete cluster --name=FSxONTAP-eks --region ap-southeast-2
+eksctl delete cluster --name=FSxONTAP-eks --region <region-name>
 ```
 
 ```
-aws cloudformation delete-stack --stack-name EKS-FSxONTAP --region ap-southeast-2
+aws cloudformation delete-stack --stack-name EKS-FSxONTAP --region <region-name>
 ```
 
 ```
-aws cloudformation delete-stack --stack-name EKS-MyFSxONTAP --region ap-southeast-2
+aws cloudformation delete-stack --stack-name EKS-MyFSxONTAP --region <region-name>
 ```
