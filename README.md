@@ -10,6 +10,16 @@ The infrastructure comprises of an Amazon EKS cluster with three EC2 worker node
 ## Project Structure
 
 .
+    ├── ...
+    ├── docs                    # Documentation files (alternatively `doc`)
+    │   ├── TOC.md              # Table of contents
+    │   ├── faq.md              # Frequently asked questions
+    │   ├── misc.md             # Miscellaneous information
+    │   ├── usage.md            # Getting started guide
+    │   └── ...                 # etc.
+    └── ...
+
+.
 ├── FSxONTAP                                # Holds CloudFormation templates for creating the network environment and FSxONTAP file system
 │   ├── FSxONTAP.yaml                       # CloudFormation template for creating FSxONTAP File System
 │   └── vpc-subnets.yaml                    # CloudFormation template for creating a VPC with two public and private subnets
