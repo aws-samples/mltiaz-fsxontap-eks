@@ -78,7 +78,7 @@ aws cloudformation delete-stack --stack-name EKS-MyFSxONTAP --region <region-nam
 ```
 
 # Security 
-See [CONTRIBUTING] (https://github.com/aws-samples/mltiaz-fsxontap-eks/blob/main/CONTRIBUTING.md) for more information.
+See [CONTRIBUTING](https://github.com/aws-samples/mltiaz-fsxontap-eks/blob/main/CONTRIBUTING.md) for more information.
 
 # License
 This library is licensed under the MIT-0 License. See the LICENSE file.
