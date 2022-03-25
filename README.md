@@ -50,7 +50,7 @@ cd mltiaz-fsxontap-eks/FSxONTAP
 
 Launch the CloudFormation stack to set up the network environment for both FSxONTAP and EKS cluster:
 ```
-aws cloudformation create-stack --stack-name EKS-FSXONTAP --template-body file://./vpc-subnets.yaml --region <region-name>
+aws cloudformation create-stack --stack-name EKS-FSXONTAP-VPC --template-body file://./vpc-subnets.yaml --region <region-name>
 ```
 
 ## Create an Amazon FSx for NetApp ONTAP file system
