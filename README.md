@@ -56,7 +56,9 @@ aws cloudformation create-stack --stack-name EKS-FSXONTAP-VPC --template-body fi
 ## Create an Amazon FSx for NetApp ONTAP file system
 Launch the Cloudformation stack as below to spin up an Amazon FSx for NetApp ONTAP file system. And you need to fill in the parameters and configuration accordingly. Make you choose those two private subnets and VPC as created in the previous step. 
 
-Click the following button to launch the CloudFormation stack that creates an FSxONTAP file system:
+```
+aws cloudformation create-stack --stack-name EKS-FSXONTAP --template-body file://./FSxONTAP.yaml --region <region-name> -parameters ParameterKey=Subnet1ID,ParameterValue=subnet-0650a950093757795 ParameterKey=Subnet2ID,ParameterValue=subnet-08fbcee5bcd34169e ParameterKey=myVpc,ParameterValue=vpc-0baa2354be068c467 ParameterKey=FSxONTAPRouteTable,ParameterValue=rtb-097e9810052987bcf ParameterKey=FileSystemName,ParameterValue=EKS-myFSxONTAP ParameterKey=ThroughputCapacity,ParameterValue=512 ParameterKey=FSxAllowedCIDR,ParameterValue=10.0.0.0/16 ParameterKey=FsxAdminPassword,ParameterValue=[Define password] ParameterKey=SvmAdminPassword,ParameterValue=[Define password] --capabilities CAPABILITY_IAM  
+```
 
 ## Create an Amazon EKS cluster
 Change to the directory where cluster.yaml file exists:
