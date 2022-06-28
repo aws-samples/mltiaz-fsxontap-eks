@@ -12,7 +12,7 @@ Metadata:
           - Subnet1ID
           - Subnet2ID
           - myVpc
-          - FSxONTAPRouteTable
+          - FSxONTAPRouteTableIds
       - Label:
           default: Configurations for FSx ONTAP File System
         Parameters:
@@ -36,8 +36,8 @@ Metadata:
         default: Private Subent 1 ID
       Subnet2ID:
         default: Private Subent 2 ID
-      FSxONTAPRouteTable:
-        default: Route Table for FSxONTAP
+      FSxONTAPRouteTableIds:
+        default: Route Table IDs for FSxONTAP, separated by comma(no space)
       FileSystemName:
         default: Name of your File System
       StorageCapacity:
@@ -68,17 +68,17 @@ Parameters:
   Subnet2ID: 
     Description: Choose the standby Subnet where FSxONTAP file system's network interface will be created
     Type: AWS::EC2::Subnet::Id
-  FSxONTAPRouteTable:
-    Description: Choose your preferred route table for FSxONTAP file system
+  FSxONTAPRouteTableIds:
+    Description: Key in your route table IDs for FSxONTAP file system, separated by comma (no space)
     Type: String
   StorageCapacity:
     Default: 1024
     Description: Specify the storage capacity of the file system being created, in gibibytes. Minimum 1024 GiB; Maximum 192 TiB.
     Type: Number
   FSxAllowedCIDR:
-    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
-    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
-    Description: Specify the CIDR block that is allowed access to FSx for Windows File Server.
+    #AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
+    #ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Description: Specify the CIDR block that is allowed access to FSx NetApp ONTAP File system.
     Type: String
   ThroughputCapacity:
     Description: Sets the throughput capacity for the file system that you're creating. Valid values are 512, 1024, and 2048 MBps.
@@ -115,10 +115,6 @@ Parameters:
 
 Resources:
   # Uncomment the following section if you would like to create a new Route Table for the FSxONTAP file system
-  #FSxONTAPRouteTable:
-    #Type: AWS::EC2::RouteTable
-    #Properties:
-      #VpcId:  !Ref myVpc
   FSxONTAPSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -255,24 +251,24 @@ Resources:
         DiskIopsConfiguration:
           Mode: AUTOMATIC
         PreferredSubnetId: !Ref Subnet1ID
-        RouteTableIds:
-          #- !GetAtt FSxONTAPRouteTable.RouteTableId
-          - !Ref FSxONTAPRouteTable
+        RouteTableIds: !Split
+          - ","
+          - !Ref FSxONTAPRouteTableIds
         ThroughputCapacity: !Ref ThroughputCapacity
         WeeklyMaintenanceStartTime: !Ref WeeklyMaintenanceTime
         FsxAdminPassword: !Ref FsxAdminPassword
       Tags:
         - Key: "Name"
           Value: "OntapFileSystem_MAZ"
-  SVM1:        
-    Type: AWS::FSx::StorageVirtualMachine
-    DependsOn: FSxONTAP
-    Properties: 
-      FileSystemId: !Ref FSxONTAP
-      Name: SVM1
-      RootVolumeSecurityStyle: !Ref RootVolumeSecurityStyle
-      SvmAdminPassword: !Ref SvmAdminPassword
-  ## Secret Manager
+  #SVM1:        
+  #  Type: AWS::FSx::StorageVirtualMachine
+  #  DependsOn: FSxONTAP
+  #  Properties: 
+  #    FileSystemId: !Ref FSxONTAP
+  #    Name: SVM1
+  #    RootVolumeSecurityStyle: !Ref RootVolumeSecurityStyle
+  #    SvmAdminPassword: !Ref SvmAdminPassword
+  ### Secret Manager
   SMFsxAdminPassword:
     Type: AWS::SecretsManager::Secret
     Properties: 
@@ -282,16 +278,16 @@ Resources:
       Tags:
         - Key: "Name"
           Value: "OntapFileSystem_MAZ"
-  SMSVMAdminPassword:
-    Type: AWS::SecretsManager::Secret
-    Properties: 
-      Description: SVMAdminPassword
-      Name: SVMAdminPassword
-      SecretString: !Sub '{"username":"vsadmin","password": ${SvmAdminPassword}}'
-      Tags:
-        - Key: "Name"
-          Value: "OntapFileSystem_MAZ"
-  ## Create IAM Role and Policy to be able to retrieve Secrets Manager
+  #SMSVMAdminPassword:
+  #  Type: AWS::SecretsManager::Secret
+  #  Properties: 
+  #    Description: SVMAdminPassword
+  #    Name: SVMAdminPassword
+  #    SecretString: !Sub '{"username":"vsadmin","password": ${SvmAdminPassword}}'
+  #    Tags:
+  #      - Key: "Name"
+  #        Value: "OntapFileSystem_MAZ"
+  ### Create IAM Role and Policy to be able to retrieve Secrets Manager
   SecretsManagerIAMPolicy:
     Type: AWS::IAM::ManagedPolicy
     Properties:
@@ -305,7 +301,7 @@ Resources:
               - 'secretsmanager:DescribeSecret'
             Resource:
               - !Ref SMFsxAdminPassword
-              - !Ref SMSVMAdminPassword     
+              #- !Ref SMSVMAdminPassword     
 Outputs:
   FSxFileSystemID:
     Description: File System ID for FSx for NetAPP ONTAP
@@ -313,9 +309,9 @@ Outputs:
   SMFSxSecretManager:
     Description: Secret Manager ARN for FSx for NetAPP ONTAP
     Value: !Ref SMFsxAdminPassword
-  SMSVMSecretManager:
-    Description: Secret Manager ARN for FSx for NetAPP ONTAP Storage Virtual Machine (SVM)
-    Value: !Ref SMSVMAdminPassword
-  SecretsManagerIAMPolicyARN:
-    Description: Trident IAM Policy ARN for Trident Backend Configuration IAM Role for Service Account
-    Value: !Ref SecretsManagerIAMPolicy
+  #SMSVMSecretManager:
+  #  Description: Secret Manager ARN for FSx for NetAPP ONTAP Storage Virtual Machine (SVM)
+  #  Value: !Ref SMSVMAdminPassword
+  #SecretsManagerIAMPolicyARN:
+  #  Description: Trident IAM Policy ARN for Trident Backend Configuration IAM Role for Service Account
+  #  Value: !Ref SecretsManagerIAMPolicy

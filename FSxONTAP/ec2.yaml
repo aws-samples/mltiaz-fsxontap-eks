@@ -1,0 +1,268 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: Creates the Amazon FSx for NetApp ONTAP workshop environment.
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: Amazon FSx for NetApp ONTAP Workshop Environment
+      Parameters:
+        - VPC
+        - InstanceType
+        - KeyPair
+        - DomainName
+        - LatestWindowsAmiId
+        - LatestLinuxAmiId
+        - PublicSubnet0
+        - PublicSubnet1
+    ParameterLabels:
+      InstanceType:
+        default: Instance Type
+      KeyPair:
+        default: Key Pair
+      VPC:
+        default: VPC ID
+      PublicSubnet0:
+        default: Public Subent 1 ID
+      PublicSubnet1:
+        default: Public Subent 2 ID 
+      DomainName:
+        default: Microsoft AD Domain Name
+      LatestWindowsAmiId:
+        default: Latest Windows AMI ID
+      LatestLinuxAmiId:
+        default: Latest Linux AMI ID
+      FsxAdminPassword:
+        default: fsxadmin user password.
+
+
+
+Parameters:
+  InstanceType:
+    Description: Select the instance type. Choose instances(c5n.9xlarge/r5n.9xlarge or higher) with non variable network throughput if running performance benchmarks.
+    AllowedValues:
+    - t3.medium
+    - m5.large
+    - c5n.xlarge
+    - c5n.2xlarge
+    - c5n.9xlarge
+    - c5n.18xlarge
+    - r5n.8xlarge
+    - r5n.16xlarge
+    - r5n.24xlarge
+    Default: t3.medium
+    Type: String
+  KeyPair:
+    Type: AWS::EC2::KeyPair::KeyName
+  VPC:
+    Description: VPC ID
+    Type: AWS::EC2::VPC::Id
+  PublicSubnet0: 
+    Description: Choose the Public Subnet where MS Direcotry and EC2 instance's network interface will be created
+    Type: AWS::EC2::Subnet::Id
+  PublicSubnet1: 
+    Description:  Choose the Public Subnet where MS Direcotry and EC2 instance's network interface will be created
+    Type: AWS::EC2::Subnet::Id
+  DomainName:
+    Description: Domain Name for Microsoft AD
+    AllowedValues:
+      - example.com
+      - fsxontap.com
+    Default: example.com
+    Type: String
+  LatestWindowsAmiId:
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: '/aws/service/ami-windows-latest/Windows_Server-2019-English-Full-Base'
+  LatestLinuxAmiId:
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
+
+Resources:
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for Amazon FSx for NetApp ONTAP Workshop Environment
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 3389
+          ToPort: 3389
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: "Amazon FSx for  NetApp ONTAP Workshop Environment security group" 
+      VpcId:
+        !Ref VPC
+  SecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties: 
+      GroupId: !Ref SecurityGroup
+      IpProtocol: -1
+      SourceSecurityGroupId: !Ref SecurityGroup
+
+  MSDirectory: 
+    DependsOn: Password
+    Type: AWS::DirectoryService::MicrosoftAD
+    Properties: 
+      Edition: Standard
+      Name: !Ref DomainName
+      Password: !Join ['', ['{{resolve:secretsmanager:', !Ref Password, ':SecretString:password}}' ]]
+      VpcSettings: 
+        SubnetIds: 
+          - !Ref PublicSubnet0
+          - !Ref PublicSubnet1
+        VpcId: 
+          !Ref VPC
+  Password:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      GenerateSecretString:
+        SecretStringTemplate: !Sub '{"username": "admin@${DomainName}"}'
+        GenerateStringKey: password
+        PasswordLength: 32
+        ExcludeCharacters: '"@/\!'
+  #FSxPassword:
+  #  Type: AWS::SecretsManager::Secret
+  #  Properties:
+  #    #Name: "/fsx/ontap/${AWS::StackName}/fsxadmin"
+  #    SecretString: !Sub '{"username": "fsxadmin", "password" : "${FsxAdminPassword}"}'
+
+  DhcpOptions:
+    Type: AWS::EC2::DHCPOptions
+    Properties: 
+      DomainName: !Ref DomainName
+      DomainNameServers: !GetAtt MSDirectory.DnsIpAddresses
+  DhcpOptionsAssociation:
+    Type: AWS::EC2::VPCDHCPOptionsAssociation
+    Properties: 
+      DhcpOptionsId: !Ref DhcpOptions
+      VpcId: !Ref VPC
+
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: '/'
+      Roles:
+      - !Ref InstanceRole
+  InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - ec2.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM
+      #- arn:aws:iam::aws:policy/AmazonFSxFullAccess
+      - arn:aws:iam::aws:policy/AmazonEC2FullAccess
+      - arn:aws:iam::aws:policy/IAMFullAccess
+      Path: "/"
+      Policies:
+      - PolicyName: secretsmanager
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - secretsmanager:GetSecretValue
+            Resource: arn:aws:secretsmanager:*:*:secret:*
+
+  # Windows Instance
+  Instance0:
+    DependsOn: MSDirectory
+    Type: AWS::EC2::Instance
+    Properties:
+      IamInstanceProfile: !Ref InstanceProfile
+      ImageId: !Ref LatestWindowsAmiId
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyPair
+      Monitoring: true
+      SecurityGroupIds: 
+        - !Ref SecurityGroup
+      SubnetId: !Ref PublicSubnet0
+      Tags:
+        - Key: Name
+          Value: FSx for ONTAP Workshop Windows Instance
+      UserData:
+        Fn::Base64:
+          !Sub |
+            <powershell>
+
+            # disable ie security (windows)
+            function Disable-ieESC {
+                $AdminKey = "HKLM:\SOFTWARE\Microsoft\Active Setup\Installed Components\{A509B1A7-37EF-4b3f-8CFC-4F3A74704073}"
+                $UserKey = "HKLM:\SOFTWARE\Microsoft\Active Setup\Installed Components\{A509B1A8-37EF-4b3f-8CFC-4F3A74704073}"
+                Set-ItemProperty -Path $AdminKey -Name "IsInstalled" -Value 0
+                Set-ItemProperty -Path $UserKey -Name "IsInstalled" -Value 0
+                Stop-Process -Name Explorer
+                Write-Host "IE Enhanced Security Configuration (ESC) has been disabled." -ForegroundColor Green
+            }
+            Disable-ieESC
+
+            # install DiskSpd (windows)
+            $path = "C:\Tools\DiskSpd-2.0.21a"
+            $url = "https://github.com/microsoft/diskspd/releases/download/v2.0.21a/DiskSpd.zip"
+            $destination = "C:\Tools\DiskSpd-2.0.21a.zip"
+            $download = New-Object -Typename System.Net.WebClient
+            New-Item -Type Directory -Path $path
+            $download.DownloadFile($url,$destination)
+            $extract = New-Object -ComObject Shell.Application
+            $files = $extract.Namespace($destination).Items()
+            $extract.NameSpace($path).CopyHere($files)
+
+            </powershell>
+  
+  # Linux Instance
+  Instance1:
+    Type: AWS::EC2::Instance
+    Properties:
+      IamInstanceProfile: !Ref InstanceProfile
+      ImageId: !Ref LatestLinuxAmiId
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyPair
+      Monitoring: true
+      SecurityGroupIds: 
+        - !Ref SecurityGroup
+      SubnetId: !Ref PublicSubnet0
+      Tags:
+        - Key: Name
+          Value: FSx for ONTAP Workshop Linux Instance
+      UserData:
+        Fn::Base64:
+          !Sub |
+            #cloud-config
+            repo_update: true
+            repo_upgrade: all
+
+            packages:
+            - cifs-utils
+            - jq
+
+            runcmd:
+            - pip3 install boto3
+            - curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            - unzip awscliv2.zip
+            - sudo ./aws/install
+            - sudo export PATH=/usr/local/bin:$PATH
+
+            - amazon-linux-extras install -y epel
+            - yum groupinstall -y "Development Tools"
+            - yum install -y fio fpart parallel tree nload git libaio-devel openmpi openmpi-devel telnet
+
+            - cd /home/ec2-user
+            - git clone https://github.com/bengland2/smallfile.git
+
+Outputs:
+  DirectoryID:
+    Description: ID of the Microsoft Active Directory
+    Value: !Ref MSDirectory
