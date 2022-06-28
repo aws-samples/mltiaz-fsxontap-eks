@@ -36,7 +36,7 @@ Metadata:
         default: Private Subent 1 ID
       Subnet2ID:
         default: Private Subent 2 ID
-      FSxONTAPRouteTable::
+      FSxONTAPRouteTable:
         default: Route Table for FSxONTAP
       FileSystemName:
         default: Name of your File System
