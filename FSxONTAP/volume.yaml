@@ -1,0 +1,72 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: This template creates Amazon FSx for NetApp ONTAP file system Volume into private subnets in separate Availability Zones
+  inside a VPC
+ 
+Parameters:
+  SVMId:
+    Type: String
+    Description: Required. Please specify the Id of the SVM (Storage Virtual Machine)
+ 
+  VolumeName:
+    Type: String
+    Description: Required. Please specify the name of the FSx NetApp ONTAP Volume. A volume name must begin with a letter or underscore, can only contain alphanumeric characters or "_", and cannot exceed 203 characters in length.
+ 
+  VolumeJunctionPath:
+    Type: String
+    Description: Required. Specifies the location in the SVM's namespace where the volume is mounted. The JunctionPath must have a leading forward slash, such as /vol3.
+    AllowedPattern: ^[^\u0000\u0085\u2028\u2029\r\n]{1,255}$
+ 
+  VolumeSizeInMegabytes:
+    Type: Number
+    Description: Required. Specifies the size of the volume, in megabytes (MB), that you are creating. Minimum 20, maximum 2147483647
+    MinValue: 20
+    MaxValue: 2147483647
+ 
+  VolumeStorageEfficiencyEnabled:
+    Type: String
+    Description: Set to true to enable deduplication, compression, and compaction storage efficiency features on the volume.
+    Default: True
+ 
+  VolumeTieringPolicy:
+    Type: String
+    Description: Specifies the tiering policy used to transition data. Default value is SNAPSHOT_ONLY.
+    Default: AUTO
+    AllowedValues: [SNAPSHOT_ONLY,AUTO,ALL,CustomerPersonal,NONE]
+ 
+  VolumeTieringPolicyCoolingPeriod:
+    Type: Number
+    Description: Specifies the number of days that user data in a volume must remain inactive before it is considered "cold" and moved to the capacity pool. Used with the AUTO and SNAPSHOT_ONLY tiering policies. Enter a whole number between 2 and 183. Default values are 31 days for AUTO and 2 days for SNAPSHOT_ONLY.
+    Default: 31
+    MinValue: 2
+    MaxValue: 183
+ 
+  VolumeSecurityStyle:
+     Description: The security style of the root volume of the Volume. Specify one of the following values, UNIX, NTFS or MIXED.
+     Type: String
+     Default: UNIX
+     AllowedValues: ["UNIX", "NTFS", "MIXED"]
+
+Resources:
+  OntapVol:
+    Type: AWS::FSx::Volume
+    Properties:
+      #BackupId: String
+      Name: !Ref VolumeName
+      OntapConfiguration:
+        JunctionPath: !Ref VolumeJunctionPath
+        SecurityStyle: !Ref VolumeSecurityStyle
+        SizeInMegabytes: !Ref VolumeSizeInMegabytes
+        StorageEfficiencyEnabled: !Ref VolumeStorageEfficiencyEnabled
+        StorageVirtualMachineId: !Ref SVMId
+        TieringPolicy:
+          Name: !Ref VolumeTieringPolicy
+          CoolingPeriod: !Ref VolumeTieringPolicyCoolingPeriod
+      #SnapshotId: String
+      Tags:
+        - Key: Name
+          Value: !Sub "FSxNetAppONTAP-${SVMId}-${VolumeName}"
+      VolumeType: ONTAP # Hard coded in this version
+Outputs:
+  FSxNetAppONTAPVolumeName:
+    Description: The FSx NetApp ONTAP Volume Name
+    Value: !Ref OntapVol
