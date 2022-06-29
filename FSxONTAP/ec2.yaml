@@ -10,16 +10,21 @@ Metadata:
         default: Amazon FSx for NetApp ONTAP Workshop Environment
       Parameters:
         - VPC
-        - InstanceType
+        - LinuxInstanceType
+        - WindowsInstanceType
         - KeyPair
         - DomainName
         - LatestWindowsAmiId
         - LatestLinuxAmiId
+        - PrivateSubnet0
+        - PrivateSubnet1
         - PublicSubnet0
         - PublicSubnet1
     ParameterLabels:
-      InstanceType:
-        default: Instance Type
+      LinuxInstanceType:
+        default: Linux Instance Type
+      WindowsInstanceType:
+        default: Windows Instance Type
       KeyPair:
         default: Key Pair
       VPC:
@@ -28,19 +33,19 @@ Metadata:
         default: Public Subent 1 ID
       PublicSubnet1:
         default: Public Subent 2 ID 
+      PrivateSubnet0:
+        default: Private Subent 1 ID
+      PrivateSubnet1:
+        default: Private Subent 2 ID 
       DomainName:
         default: Microsoft AD Domain Name
       LatestWindowsAmiId:
         default: Latest Windows AMI ID
       LatestLinuxAmiId:
         default: Latest Linux AMI ID
-      FsxAdminPassword:
-        default: fsxadmin user password.
-
-
 
 Parameters:
-  InstanceType:
+  LinuxInstanceType:
     Description: Select the instance type. Choose instances(c5n.9xlarge/r5n.9xlarge or higher) with non variable network throughput if running performance benchmarks.
     AllowedValues:
     - t3.medium
@@ -54,16 +59,36 @@ Parameters:
     - r5n.24xlarge
     Default: t3.medium
     Type: String
+  WindowsInstanceType:
+    Description: Select the instance type. Choose instances(c5n.9xlarge/r5n.9xlarge or higher) with non variable network throughput if running performance benchmarks.
+    AllowedValues:
+    - t3.xlarge
+    - m5.large
+    - c5n.xlarge
+    - c5n.2xlarge
+    - c5n.9xlarge
+    - c5n.18xlarge
+    - r5n.8xlarge
+    - r5n.16xlarge
+    - r5n.24xlarge
+    Default: t3.xlarge
+    Type: String
   KeyPair:
     Type: AWS::EC2::KeyPair::KeyName
   VPC:
     Description: VPC ID
     Type: AWS::EC2::VPC::Id
   PublicSubnet0: 
-    Description: Choose the Public Subnet where MS Direcotry and EC2 instance's network interface will be created
+    Description: Choose the Public Subnet where EC2 instance's network interface will be created
     Type: AWS::EC2::Subnet::Id
   PublicSubnet1: 
-    Description:  Choose the Public Subnet where MS Direcotry and EC2 instance's network interface will be created
+    Description:  Choose the Public Subnet where EC2 instance's network interface will be created
+    Type: AWS::EC2::Subnet::Id
+  PrivateSubnet0: 
+    Description: Choose the Private Subnet where MS Direcotry's network interface will be created
+    Type: AWS::EC2::Subnet::Id
+  PrivateSubnet1: 
+    Description:  Choose the Private Subnet where MS Direcotry's network interface will be created
     Type: AWS::EC2::Subnet::Id
   DomainName:
     Description: Domain Name for Microsoft AD
@@ -74,7 +99,7 @@ Parameters:
     Type: String
   LatestWindowsAmiId:
     Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
-    Default: '/aws/service/ami-windows-latest/Windows_Server-2019-English-Full-Base'
+    Default: '/aws/service/ami-windows-latest/Windows_Server-2019-English-Full-SQL_2016_SP3_Standard'
   LatestLinuxAmiId:
     Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
     Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
@@ -114,8 +139,8 @@ Resources:
       Password: !Join ['', ['{{resolve:secretsmanager:', !Ref Password, ':SecretString:password}}' ]]
       VpcSettings: 
         SubnetIds: 
-          - !Ref PublicSubnet0
-          - !Ref PublicSubnet1
+          - !Ref PrivateSubnet0
+          - !Ref PrivateSubnet1
         VpcId: 
           !Ref VPC
   Password:
@@ -126,12 +151,6 @@ Resources:
         GenerateStringKey: password
         PasswordLength: 32
         ExcludeCharacters: '"@/\!'
-  #FSxPassword:
-  #  Type: AWS::SecretsManager::Secret
-  #  Properties:
-  #    #Name: "/fsx/ontap/${AWS::StackName}/fsxadmin"
-  #    SecretString: !Sub '{"username": "fsxadmin", "password" : "${FsxAdminPassword}"}'
-
   DhcpOptions:
     Type: AWS::EC2::DHCPOptions
     Properties: 
@@ -165,7 +184,7 @@ Resources:
       - arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM
       #- arn:aws:iam::aws:policy/AmazonFSxFullAccess
       - arn:aws:iam::aws:policy/AmazonEC2FullAccess
-      - arn:aws:iam::aws:policy/IAMFullAccess
+      #- arn:aws:iam::aws:policy/IAMFullAccess
       Path: "/"
       Policies:
       - PolicyName: secretsmanager
@@ -184,7 +203,7 @@ Resources:
     Properties:
       IamInstanceProfile: !Ref InstanceProfile
       ImageId: !Ref LatestWindowsAmiId
-      InstanceType: !Ref InstanceType
+      InstanceType: !Ref WindowsInstanceType
       KeyName: !Ref KeyPair
       Monitoring: true
       SecurityGroupIds: 
@@ -228,7 +247,7 @@ Resources:
     Properties:
       IamInstanceProfile: !Ref InstanceProfile
       ImageId: !Ref LatestLinuxAmiId
-      InstanceType: !Ref InstanceType
+      InstanceType: !Ref LinuxInstanceType
       KeyName: !Ref KeyPair
       Monitoring: true
       SecurityGroupIds: 
@@ -261,6 +280,57 @@ Resources:
 
             - cd /home/ec2-user
             - git clone https://github.com/bengland2/smallfile.git
+
+  FSxDomainJoinInstallDFS:
+    DependsOn: MSDirectory
+    Type: AWS::SSM::Document
+    Properties:
+      DocumentType: Command
+      Content:
+        schemaVersion: "2.2"
+        description: Join instances to an AWS Directory Service domain
+        parameters:
+          directoryId:
+            type: String
+            description: (Required) ID of the AWS Managed Microsoft AD (i.e. d-0123456789)
+          directoryName:
+            type: String
+            description: (Required) Directory name (i.e. example.com)
+          dnsIpAddresses:
+            type: StringList
+            default: []
+            description: "(Optional) AWS Managed Microsoft AD DNS IP addresses (i.e. 172.31.0.11, 172.31.0.12)
+              Required when DHCP is not configured. Learn more at http://docs.aws.amazon.com/directoryservice/latest/simple-ad/join_get_dns_addresses.html"
+        mainSteps:
+        - action: aws:domainJoin
+          name: joinDomain
+          inputs:
+            directoryId: "{{ directoryId }}"
+            directoryName: "{{ directoryName }}"
+            dnsIpAddresses: "{{ dnsIpAddresses }}"
+        - action: aws:runPowerShellScript
+          name: installDfsMgmt
+          inputs:
+            runCommand:
+              - Install-WindowsFeature -Name FS-FileServer, FS-DFS-namespace -IncludeManagementTools;
+              - Install-WindowsFeature -Name RSAT-DFS-Mgmt-Con
+              - New-Item -Type Directory -Path "C:\DFS"
+              - Install-WindowsFeature RSAT-ADDS
+              - Install-WindowsFeature -Name RSAT-ADDS-Tools,RSAT-DNS-Server
+  Association:
+    DependsOn: MSDirectory
+    Type: AWS::SSM::Association
+    Properties:
+      Name: !Ref FSxDomainJoinInstallDFS
+      Parameters:
+        directoryId: [!Ref MSDirectory]
+        directoryName: [!Ref DomainName]
+        dnsIpAddresses:
+        - !Select [ 0, !GetAtt MSDirectory.DnsIpAddresses ]
+        - !Select [ 1, !GetAtt MSDirectory.DnsIpAddresses ]        
+      Targets:
+      - Key: InstanceIds
+        Values: [ !Ref Instance0 ]
 
 Outputs:
   DirectoryID:

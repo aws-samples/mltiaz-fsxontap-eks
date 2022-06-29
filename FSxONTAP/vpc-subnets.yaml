@@ -5,7 +5,7 @@ Parameters:
   VPCName:
     Description: The name of the VPC being created.
     Type: String
-    Default: "FSxONTAP-EKS-VPC"
+    Default: "FSxONTAP-DeepDive-VPC"
   
 Mappings:
   SubnetConfig:
