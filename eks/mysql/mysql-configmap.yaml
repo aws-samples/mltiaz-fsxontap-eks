@@ -6,11 +6,11 @@ metadata:
   labels:
     app: mysql
 data:
-  master.cnf: |
+  primary.cnf: |
     # Apply this config only on the leader.
     [mysqld]
     log-bin
-  slave.cnf: |
+  replica.cnf: |
     # Apply this config only on followers.
     [mysqld]
     super-read-only

@@ -16,7 +16,7 @@ spec:
     spec:
       initContainers:
       - name: init-mysql
-        image: mysql:5.7
+        image: mysql:5.6
         command:
         - bash
         - "-c"
@@ -30,9 +30,9 @@ spec:
           echo server-id=$((100 + $ordinal)) >> /mnt/conf.d/server-id.cnf
           # Copy appropriate conf.d files from config-map to emptyDir.
           if [[ $ordinal -eq 0 ]]; then
-            cp /mnt/config-map/master.cnf /mnt/conf.d/
+            cp /mnt/config-map/primary.cnf /mnt/conf.d/
           else
-            cp /mnt/config-map/slave.cnf /mnt/conf.d/
+            cp /mnt/config-map/replica.cnf /mnt/conf.d/
           fi
         volumeMounts:
         - name: conf
