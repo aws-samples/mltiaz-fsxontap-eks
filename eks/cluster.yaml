@@ -2,16 +2,16 @@ apiVersion: eksctl.io/v1alpha5
 kind: ClusterConfig
 metadata:
   name: FSxONTAP-eks
-  region: ap-southeast-2
+  region: region-name
 vpc:
-  id: "vpc-0baa2354be068c467" #replace with your vpcId
+  id: "vpc-id" #replace with your vpcId
   clusterEndpoints:
     privateAccess: false
     publicAccess: true # Create the EKS control planes in the public subnets
   subnets:
     public: # Create the EKS control planes in the public subnets
-      ap-southeast-2a: { id: subnet-0301c68ecae276fd2 } #replace with your subnetid
-      ap-southeast-2b: { id: subnet-0c6961e5b82dfd96e }
+      ap-southeast-2a: { id: public-subnet-1 } #replace with your subnetid
+      ap-southeast-2b: { id: public-subnet-2 }
 iam:
   withOIDC: true
 addons:
@@ -24,7 +24,7 @@ addons:
 managedNodeGroups:
   - name: ng-1-workers
     # Create the EKS Managed Node Groups in the private subnets
-    subnets: [ 'subnet-0650a950093757795', 'subnet-08fbcee5bcd34169e'] #replace with your subnetId
+    subnets: [ 'private-subnet1', 'private-subnet2'] #replace with your subnetId
     labels: { role: workers }
     instanceType: t3.large
     desiredCapacity: 3
