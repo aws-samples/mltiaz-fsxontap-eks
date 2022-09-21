@@ -2,7 +2,7 @@ apiVersion: eksctl.io/v1alpha5
 kind: ClusterConfig
 metadata:
   name: FSxONTAP-eks
-  region: region-name
+  region: ap-southeast-2
 vpc:
   id: "vpc-id" #replace with your vpcId
   clusterEndpoints:
