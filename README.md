@@ -4,7 +4,7 @@
 The infrastructure comprises of an Amazon EKS cluster with three EC2 worker nodes and a FSxONTAP file system that spans across multiple availability zones. After infrastructure deployment, we will walk through how to leverage NetApp’s Trident Container Storage Interface (CSI) (https://netapp-trident.readthedocs.io/en/stable-v19.01/kubernetes/trident-csi.html)to create storage volume powered by FSxONTAP for a MySql database that runs on Amazon EKS cluster. NetApp's Trident Container Storage Interface (CSI) driver provides a CSI interface that allows Amazon EKS clusters to manage the lifecycle of Amazon FSx for NetApp ONTAP file systems.The test environment could be created quite easily with a Infrastructure of Code (IaC) approach thanks to AWS CloudFormation’s capability and we will dive deep into how to deploy Trident CSI Operator into the Amazon EKS cluster via Helm (https://helm.sh/), and creating the storage class, persistent volume claims so as to let the application pod mount on the volume provided by FSxONTAP.
 
 ## Architecture Diagram
-
+  
 ![Diagram](/Architecture.png)
 
 ## Project Structure
